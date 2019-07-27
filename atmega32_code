@@ -1,0 +1,122 @@
+/*
+ * adc_servo.c
+ *
+ * Created: 20-03-2019 13:45:03
+ * Author : harshal
+ */ 
+
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#define display PORTC
+
+#define servo0 0 
+#define servo1 1 
+#define servo2 2 
+#define servo3 3
+
+void adc_init()
+{
+	ADMUX |= (1<<REFS0)|(1<<ADLAR);
+	ADMUX &=0xF0;
+	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+} 
+uint8_t adc_read(uint16_t x)//pass channel from no0
+{
+	ADMUX &=0xF0;
+	if( x ==0);
+	else
+	ADMUX |=(1<<(x-1));
+	ADCSRA |= (1<<ADSC);
+	while(ADCSRA & (1<<ADSC));
+	return ADCH;
+}
+int main(void)
+{  
+   uint16_t result1,result2,result3,result0,i;
+   DDRC=0xff;
+   DDRD=0xff;
+   DDRA=0x00;
+   adc_init();
+  
+
+   while(1)
+   {
+        _delay_ms(30);
+        PORTD |=(1<<servo0)|(1<<servo1)|(1<<servo2)|(1<<servo3);
+        PORTC=adc_read(3);  
+        result0=adc_read(0)*23;
+        result1=adc_read(1)*32;
+        result2=adc_read(2)*40;
+        result3=adc_read(3)*20;
+        if(result0<1000) result0=1000;
+        if(result1<1000) result1=1000;
+
+           ///set high
+        if(result0>result1 && result0>result2)
+        {
+          if(result1>result2)
+          {
+           for(i=0;i<result2;i++);
+           PORTD &=~(1<<servo2);  //set low
+           for(i=0;i<(result1-result2);i++);   //delay
+           PORTD &=~(1<<servo1); 
+           result0 -=result1; 			
+          }
+          else
+          {
+            for(i=0;i<result1;i++);
+            PORTD &=~(1<<servo1);  //set low
+            for(i=0;i<(result2-result1);i++);   //delay
+            PORTD &=~(1<<servo2);  
+            result0 -=result2;//set low
+          }
+          for(i=0;i<(result0);i++);   //delay
+          PORTD &=~(1<<servo0);
+
+        }
+        else if(result1>result0 && result1>result2)
+        {
+          if(result0>result2)
+          {
+            for(i=0;i<result2;i++);
+            PORTD &=~(1<<servo2);  //set low
+            for(i=0;i<(result0-result2);i++);   //delay
+            PORTD &=~(1<<servo0);  //set low
+             result1 -=result0;
+          }
+           else
+          {
+            for(i=0;i<result0;i++);
+            PORTD &=~(1<<servo0);  //set low
+            for(i=0;i<(result2-result0);i++);   //delay
+            PORTD &=~(1<<servo2);
+            result1 -=result2;  //set low
+            }
+          for(i=0;i<(result1);i++);   //delay
+          PORTD &=~(1<<servo1);
+        }
+        else
+        {
+          if(result0>result1)
+          {
+            for(i=0;i<result1;i++);
+            PORTD &=~(1<<servo1);  //set low
+            for(i=0;i<(result0-result1);i++);   //delay
+            PORTD &=~(1<<servo0);  //set low
+            result2 -=result0;
+          }
+          else
+          {
+            for(i=0;i<result0;i++);
+            PORTD &=~(1<<servo0);  //set low
+            for(i=0;i<(result1-result0);i++);   //delay
+            PORTD &=~(1<<servo1);  //set low
+            result2 -=result1;
+          }
+          for(i=0;i<(result2);i++);   //delay
+          PORTD &=~(1<<servo2);
+        }
+   }
+}
+
